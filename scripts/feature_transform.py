@@ -48,6 +48,32 @@ of American Airlines Group Inc. (AAL) stocks
 
     return merged
 
+def merge_weather_data(X):
+    X = X.copy()
+    weather_data = pd.read_csv('../data/weather_data.csv')
+    weather_data = weather_data[['time','tavg','prcp','wspd','airport_code']]
+
+    weather_data_from = weather_data.rename(columns={"time": "flight_date",
+                                 "airport_code": "from",
+                                 "tavg": "tavg_from",
+                                 "prcp": "prcp_from",
+                                 "wspd": "wspd_from"})
+
+    weather_data_to = weather_data.rename(columns={"time": "flight_date",
+                                 "airport_code": "to",
+                                 "tavg": "tavg_to",
+                                 "prcp": "prcp_to",
+                                 "wspd": "wspd_to"})                            
+    merged_from = pd.merge(X, weather_data_from, on=["flight_date", "from"])
+    merged = pd.merge(merged_from, weather_data_to, on=["flight_date", "to"])
+    
+    return merged
+
+
+
+
+
+
 
 
 
