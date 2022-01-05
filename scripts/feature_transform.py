@@ -1,6 +1,8 @@
 import pandas as pd
 from datetime import datetime
 
+from pandas.io.sql import DatabaseError
+
 def dates_encoder(X):
     
     # Make sure that flight date is of dtype datetime
@@ -26,3 +28,27 @@ def merge_path(X):
     X.loc[:, 'path'] = X['from'] + '_' + X['to']
     
     return X.drop(columns = ['from','to'])
+
+
+def merge_stock_data(X):
+
+    '''
+the data X needs to be indexed by the flights date column, 
+the date format is year-month-day.
+The stock data used here was taken from Finance.Yahoo 
+of American Airlines Group Inc. (AAL) stocks
+
+    ''' 
+    X = X.copy()
+    stocks_data = pd.read_csv('../data/stock_external_data.csv')
+    # take only closing price of the stock
+    stocks_data = stocks_data[['Date','Close']]
+    stocks_data.rename(columns={"Date": "flight_date"}, inplace=True)
+    merged = pd.merge(X, stocks_data, how="outer", on=["flight_date"])
+
+    return merged
+
+
+
+
+
