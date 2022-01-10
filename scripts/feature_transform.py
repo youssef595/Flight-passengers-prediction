@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 from meteostat import Stations, Daily, Point
 from pandas.io.sql import DatabaseError
+import haversine as hs
+from haversine import Unit
 
 def dates_encoder(X):
     
@@ -49,6 +51,26 @@ of American Airlines Group Inc. (AAL) stocks
 
     return merged
 
+def get_distance(X):
+    url="https://raw.githubusercontent.com/ravisurdhar/flight_delays/master/airports.csv"
+    us_airports=pd.read_csv(url)
+    us_airports['coordinate_from'] = list(zip(us_airports.LATITUDE, us_airports.LONGITUDE))
+    us_airports = us_airports[['IATA_CODE','coordinate_from']]
+    us_airports['coordinate_to'] = us_airports['coordinate_from']
+    us_airports = us_airports.rename(columns={'IATA_CODE':'from'})
+    data = pd.merge(X, us_airports, on=['from'])
+    us_airports = us_airports.rename(columns={'from':'to'})
+    data = pd.merge(data, us_airports, on=['to'])
+    data = data.rename(columns={'coordinate_from_x':'coordinate_from', 'coordinate_to_y':'coordinate_to'})
+    data = data.drop(labels=['coordinate_to_x', 'coordinate_from_y'], axis=1)
+    list_coordinates = list(zip(data['coordinate_from'].tolist(), data['coordinate_to'].tolist()))
+    dist=[]
+    for i in range(len(list_coordinates)):
+        dist.append(hs.haversine(list_coordinates[i][0], list_coordinates[i][1],unit=Unit.KILOMETERS))
+    data['distance'] = dist
+    data = data.drop(labels=['coordinate_from', 'coordinate_to'], axis=1)
+    return data
+
 def scrap_weather(X, start, end):
     url="https://raw.githubusercontent.com/ravisurdhar/flight_delays/master/airports.csv"
     us_airports=pd.read_csv(url)
@@ -73,9 +95,8 @@ def scrap_weather(X, start, end):
     weather_data['airport_code'] = iatas_repeated
     return weather_data
 
-def merge_weather_data(X):
+def merge_weather_data(X, weather_data):
     X = X.copy()
-    weather_data = pd.read_csv('../data/weather_data.csv')
     weather_data = weather_data[['time','tavg','prcp','wspd','airport_code']]
 
     weather_data_from = weather_data.rename(columns={"time": "flight_date",
@@ -94,12 +115,8 @@ def merge_weather_data(X):
     
     return merged
 
-
-
-
-
-
-
-
-
-
+def interpolate_missing_values(X, column, rename):
+    X[rename] = X[column].interpolate(method='polynomial', order=2).values
+    X = X.drop(labels=[column], axis=1)
+    X = X.rename(columns={rename:column})
+    return X
