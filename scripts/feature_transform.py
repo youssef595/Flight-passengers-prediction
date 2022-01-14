@@ -87,7 +87,7 @@ def scrap_weather(X, start, end):
         point = Point(list_geo[i][0], list_geo[i][1])
         data = Daily(point, start, end)
         df = data.fetch()
-        df = df.drop(labels=['snow', 'wdir', 'wpgt', 'pres', 'tsun'], axis=1)
+        df = df.drop(labels=['wpgt', 'pres', 'tsun'], axis=1)
         list_data.append(df.reset_index())
     
     weather_data = pd.concat(list_data, axis=0)
@@ -97,19 +97,21 @@ def scrap_weather(X, start, end):
 
 def merge_weather_data(X, weather_data):
     X = X.copy()
-    weather_data = weather_data[['time','tavg','prcp','wspd','airport_code']]
+    weather_data = weather_data[['time','tavg','prcp','wspd','airport_code','snow']]
 
     weather_data_from = weather_data.rename(columns={"time": "flight_date",
                                  "airport_code": "from",
                                  "tavg": "tavg_from",
                                  "prcp": "prcp_from",
-                                 "wspd": "wspd_from"})
+                                 "wspd": "wspd_from",
+                                 "snow":"snow_from"})
 
     weather_data_to = weather_data.rename(columns={"time": "flight_date",
                                  "airport_code": "to",
                                  "tavg": "tavg_to",
                                  "prcp": "prcp_to",
-                                 "wspd": "wspd_to"})                            
+                                 "wspd": "wspd_to",
+                                 "snow":"snow_to"})                            
     merged_from = pd.merge(X, weather_data_from, on=["flight_date", "from"])
     merged = pd.merge(merged_from, weather_data_to, on=["flight_date", "to"])
     
