@@ -19,11 +19,22 @@ def dates_encoder(X):
     X.loc[:, 'day'] = X['flight_date'].dt.day
     X.loc[:, 'weekday'] = X['flight_date'].dt.weekday
     X.loc[:, 'week'] = X['flight_date'].dt.isocalendar().week
-    X.loc[:, 'number_of_days'] = X['flight_date'].apply(
-        lambda date: (date - pd.to_datetime("1970-01-01")).days
-    )
+    X.loc[:, 'number_of_days'] = X['flight_date'].apply(lambda date: (date - pd.to_datetime("1970-01-01")).days)
+    X.loc[:, 'weekend'] = X['weekday'].map(lambda x: x == 5)
+    X.loc[:, 'nye'] = X['year'].map(lambda x: datetime(x,12,31))
+    X.loc[:, 'indpendence'] = X['year'].map(lambda x: datetime(x,7,4))
+    for i in range(X.shape[0]):
+        start = X.loc[i,'nye']
+        stop = X.loc[i,'flight_date']
+        delta = start - stop
+        X.loc[i,'days_to_nye'] = abs(int(delta.days))
     # Finally we can drop the original columns from the dataframe
-    return X.drop(columns=["flight_date"])
+    for i in range(X.shape[0]):
+        start = X.loc[i,'indpendence']
+        stop = X.loc[i,'flight_date']
+        delta = start - stop
+        X.loc[i,'days_to_ind'] = abs(int(delta.days))
+    return X.drop(columns=["flight_date", "nye", "indpendence"])
 
 def merge_path(X):
     
@@ -122,3 +133,22 @@ def interpolate_missing_values(X, column, rename):
     X = X.drop(labels=[column], axis=1)
     X = X.rename(columns={rename:column})
     return X
+
+def merge_external_data(X):
+    filepath = 'https://raw.githubusercontent.com/ramp-kits/air_passengers/master/submissions/use_external_data/external_data.csv'
+    # Make sure that DateOfDeparture is of dtype datetime
+    X = X.copy()  # modify a copy of X
+    X.loc[:, "flight_date"] = pd.to_datetime(X['flight_date'])
+    # Parse date to also be of dtype datetime
+    data_weather = pd.read_csv(filepath, parse_dates=["Date"])
+
+    X_weather = data_weather[['Date', 'AirPort', 'Max TemperatureC']]
+    X_weather = X_weather.rename(
+        columns={'Date': 'flight_date', 'AirPort': 'to'}
+    )
+
+    X_merged = pd.merge(
+        X, X_weather, how='left', on=['flight_date', 'to'], sort=False
+    )
+    return X_merged
+
