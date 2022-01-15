@@ -34,6 +34,7 @@ def dates_encoder(X):
         stop = X.loc[i,'flight_date']
         delta = start - stop
         X.loc[i,'days_to_ind'] = abs(int(delta.days))
+    X['weekend'] = X['weekend'].astype(int)
     return X.drop(columns=["flight_date", "nye", "indpendence"])
 
 def merge_path(X):
@@ -134,7 +135,7 @@ def interpolate_missing_values(X, column, rename):
     X = X.rename(columns={rename:column})
     return X
 
-def merge_external_data(X):
+def merge_temperature_data(X):
     filepath = 'https://raw.githubusercontent.com/ramp-kits/air_passengers/master/submissions/use_external_data/external_data.csv'
     # Make sure that DateOfDeparture is of dtype datetime
     X = X.copy()  # modify a copy of X
@@ -152,3 +153,57 @@ def merge_external_data(X):
     )
     return X_merged
 
+def merge_event_data(X):
+    filepath = 'https://raw.githubusercontent.com/ramp-kits/air_passengers/master/submissions/use_external_data/external_data.csv'
+    # Make sure that DateOfDeparture is of dtype datetime
+    X = X.copy()  # modify a copy of X
+    X.loc[:, "flight_date"] = pd.to_datetime(X['flight_date'])
+    # Parse date to also be of dtype datetime
+    data_weather = pd.read_csv(filepath, parse_dates=["Date"])
+
+    X_weather = data_weather[['Date', 'AirPort', 'Events']]
+    X_weather = X_weather.rename(
+        columns={'Date': 'flight_date', 'AirPort': 'to'}
+    )
+    X_weather['Events'] = X_weather['Events'].fillna('missing')
+    
+    X_merged = pd.merge(
+        X, X_weather, how='left', on=['flight_date', 'to'], sort=False
+    )
+    return X_merged
+
+
+def merge_weather_data(X):
+    filepath = 'https://raw.githubusercontent.com/ramp-kits/air_passengers/master/submissions/use_external_data/external_data.csv'
+    # Make sure that DateOfDeparture is of dtype datetime
+    X = X.copy()  # modify a copy of X
+    X.loc[:, "flight_date"] = pd.to_datetime(X['flight_date'])
+    # Parse date to also be of dtype datetime
+    data_weather = pd.read_csv(filepath, parse_dates=["Date"])
+    cols_to_drop = data_weather.filter(like='Mean').columns.tolist() + ['CloudCover']
+    X_weather = data_weather.drop(cols_to_drop, 1)
+    X_weather = X_weather.rename(
+        columns={'Date': 'flight_date', 'AirPort': 'to'}
+    )
+
+    X_merged = pd.merge(
+        X, X_weather, how='left', on=['flight_date', 'to'], sort=False
+    )
+    return X_merged
+
+def merge_corr_weather_data(X):
+    filepath = 'https://raw.githubusercontent.com/ramp-kits/air_passengers/master/submissions/use_external_data/external_data.csv'
+    # Make sure that DateOfDeparture is of dtype datetime
+    X = X.copy()  # modify a copy of X
+    X.loc[:, "flight_date"] = pd.to_datetime(X['flight_date'])
+    # Parse date to also be of dtype datetime
+    data_weather = pd.read_csv(filepath, parse_dates=["Date"])
+    X_weather = data_weather[['Date', 'AirPort', 'Dew PointC', '']]
+    X_weather = X_weather.rename(
+        columns={'Date': 'flight_date', 'AirPort': 'to'}
+    )
+
+    X_merged = pd.merge(
+        X, X_weather, how='left', on=['flight_date', 'to'], sort=False
+    )
+    return X_merged
