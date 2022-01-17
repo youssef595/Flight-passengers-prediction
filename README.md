@@ -24,3 +24,5 @@ The main difficulty of the challenge is the limited number of information per fl
 ## Scoring
 The performance of the prediction will be quantified on left-out data, using the RMSE (Root Mean Squared Error).
 The test data is available under the same format as the training data, minus the target column.
+
+## ! Please in order to be able to see the plotly plots in the EDA notebook paste the repo link and explore the notebook in this website : https://nbviewer.org/
