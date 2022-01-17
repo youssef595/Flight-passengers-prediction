@@ -9,11 +9,10 @@ from haversine import Unit
 def dates_encoder(X):
     
     # Make sure that flight date is of dtype datetime
-    X = X.copy()  # modify a copy of X
+    X = X.copy()
     X.loc[:, "flight_date"] = pd.to_datetime(X['flight_date'])
     
     # Encode the date information from the flight_date column
-    
     X.loc[:, 'year'] = X['flight_date'].dt.year
     X.loc[:, 'month'] = X['flight_date'].dt.month
     X.loc[:, 'day'] = X['flight_date'].dt.day
@@ -37,8 +36,8 @@ def dates_encoder(X):
     X['weekend'] = X['weekend'].astype(int)
     return X.drop(columns=["flight_date", "nye", "indpendence"])
 
+# merge path (from_to)
 def merge_path(X):
-    
     X = X.copy()
     X.loc[:, 'path'] = X['from'] + '_' + X['to']
     
@@ -63,6 +62,7 @@ of American Airlines Group Inc. (AAL) stocks
 
     return merged
 
+# get distances between destination and arrival airports
 def get_distance(X):
     url="https://raw.githubusercontent.com/ravisurdhar/flight_delays/master/airports.csv"
     us_airports=pd.read_csv(url)
@@ -83,6 +83,7 @@ def get_distance(X):
     data = data.drop(labels=['coordinate_from', 'coordinate_to'], axis=1)
     return data
 
+#weather_data_collection using meteo stat
 def scrap_weather(X, start, end):
     url="https://raw.githubusercontent.com/ravisurdhar/flight_delays/master/airports.csv"
     us_airports=pd.read_csv(url)
@@ -107,7 +108,8 @@ def scrap_weather(X, start, end):
     weather_data['airport_code'] = iatas_repeated
     return weather_data
 
-def merge_weather_data(X, weather_data):
+#merge weather_data from meteostat
+def merge_weather_data_1(X, weather_data):
     X = X.copy()
     weather_data = weather_data[['time','tavg','prcp','wspd','airport_code','snow']]
 
@@ -129,12 +131,33 @@ def merge_weather_data(X, weather_data):
     
     return merged
 
+# fill missing values of meteo stat data
 def interpolate_missing_values(X, column, rename):
     X[rename] = X[column].interpolate(method='polynomial', order=2).values
     X = X.drop(labels=[column], axis=1)
     X = X.rename(columns={rename:column})
     return X
 
+# merge verified weather_data found in external repo
+def merge_weather_data_2(X):
+    filepath = 'https://raw.githubusercontent.com/ramp-kits/air_passengers/master/submissions/use_external_data/external_data.csv'
+    # Make sure that DateOfDeparture is of dtype datetime
+    X = X.copy()  # modify a copy of X
+    X.loc[:, "flight_date"] = pd.to_datetime(X['flight_date'])
+    # Parse date to also be of dtype datetime
+    data_weather = pd.read_csv(filepath, parse_dates=["Date"])
+    cols_to_drop = data_weather.filter(like='Mean').columns.tolist()+ data_weather.filter(like='Min').columns.tolist() + ['CloudCover']
+    X_weather = data_weather.drop(cols_to_drop, 1)
+    X_weather = X_weather.rename(
+        columns={'Date': 'flight_date', 'AirPort': 'to'}
+    )
+
+    X_merged = pd.merge(
+        X, X_weather, how='left', on=['flight_date', 'to'], sort=False
+    )
+    return X_merged.drop(['Precipitationmm','Events','WindDirDegrees'], 1)
+
+# merge only temperature data from external repo
 def merge_temperature_data(X):
     filepath = 'https://raw.githubusercontent.com/ramp-kits/air_passengers/master/submissions/use_external_data/external_data.csv'
     # Make sure that DateOfDeparture is of dtype datetime
@@ -144,61 +167,6 @@ def merge_temperature_data(X):
     data_weather = pd.read_csv(filepath, parse_dates=["Date"])
 
     X_weather = data_weather[['Date', 'AirPort', 'Max TemperatureC']]
-    X_weather = X_weather.rename(
-        columns={'Date': 'flight_date', 'AirPort': 'to'}
-    )
-
-    X_merged = pd.merge(
-        X, X_weather, how='left', on=['flight_date', 'to'], sort=False
-    )
-    return X_merged
-
-def merge_event_data(X):
-    filepath = 'https://raw.githubusercontent.com/ramp-kits/air_passengers/master/submissions/use_external_data/external_data.csv'
-    # Make sure that DateOfDeparture is of dtype datetime
-    X = X.copy()  # modify a copy of X
-    X.loc[:, "flight_date"] = pd.to_datetime(X['flight_date'])
-    # Parse date to also be of dtype datetime
-    data_weather = pd.read_csv(filepath, parse_dates=["Date"])
-
-    X_weather = data_weather[['Date', 'AirPort', 'Events']]
-    X_weather = X_weather.rename(
-        columns={'Date': 'flight_date', 'AirPort': 'to'}
-    )
-    X_weather['Events'] = X_weather['Events'].fillna('missing')
-    
-    X_merged = pd.merge(
-        X, X_weather, how='left', on=['flight_date', 'to'], sort=False
-    )
-    return X_merged
-
-
-def merge_weather_data(X):
-    filepath = 'https://raw.githubusercontent.com/ramp-kits/air_passengers/master/submissions/use_external_data/external_data.csv'
-    # Make sure that DateOfDeparture is of dtype datetime
-    X = X.copy()  # modify a copy of X
-    X.loc[:, "flight_date"] = pd.to_datetime(X['flight_date'])
-    # Parse date to also be of dtype datetime
-    data_weather = pd.read_csv(filepath, parse_dates=["Date"])
-    cols_to_drop = data_weather.filter(like='Mean').columns.tolist() + ['CloudCover']
-    X_weather = data_weather.drop(cols_to_drop, 1)
-    X_weather = X_weather.rename(
-        columns={'Date': 'flight_date', 'AirPort': 'to'}
-    )
-
-    X_merged = pd.merge(
-        X, X_weather, how='left', on=['flight_date', 'to'], sort=False
-    )
-    return X_merged
-
-def merge_corr_weather_data(X):
-    filepath = 'https://raw.githubusercontent.com/ramp-kits/air_passengers/master/submissions/use_external_data/external_data.csv'
-    # Make sure that DateOfDeparture is of dtype datetime
-    X = X.copy()  # modify a copy of X
-    X.loc[:, "flight_date"] = pd.to_datetime(X['flight_date'])
-    # Parse date to also be of dtype datetime
-    data_weather = pd.read_csv(filepath, parse_dates=["Date"])
-    X_weather = data_weather[['Date', 'AirPort', 'Dew PointC', '']]
     X_weather = X_weather.rename(
         columns={'Date': 'flight_date', 'AirPort': 'to'}
     )
