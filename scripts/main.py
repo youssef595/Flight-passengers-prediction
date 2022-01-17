@@ -1,6 +1,4 @@
-import numpy as np
 import pandas as pd
-from datetime import datetime
 from feature_transform import dates_encoder, merge_path, \
     merge_temperature_data
 

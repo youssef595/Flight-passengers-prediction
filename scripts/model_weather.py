@@ -1,7 +1,4 @@
-import numpy as np
 import pandas as pd
-from datetime import datetime
-import sys
 from feature_transform import dates_encoder, merge_path, \
     merge_weather_data_2
 from sklearn.preprocessing import FunctionTransformer
@@ -34,11 +31,10 @@ categorical_encoder = OneHotEncoder(handle_unknown='ignore',
                                     sparse=False)
 categorical_cols = ['path']
 
-preprocessor = make_column_transformer((categorical_encoder,
-        categorical_cols), remainder='passthrough')
+preprocessor = make_column_transformer((categorical_encoder, categorical_cols),
+                                       remainder='passthrough')
 
-regressor_rf = RandomForestRegressor(n_estimators=10, max_depth=10,
-        n_jobs=4)
+regressor_rf = RandomForestRegressor(n_estimators=10, max_depth=10, n_jobs=4)
 regressor_lgb = LGBMRegressor(
     boosting_type='gbdt',
     class_weight=None,
