@@ -148,14 +148,9 @@ def merge_weather_data_2(X):
     data_weather = pd.read_csv(filepath, parse_dates=["Date"])
     cols_to_drop = data_weather.filter(like='Mean').columns.tolist()+ data_weather.filter(like='Min').columns.tolist() + ['CloudCover']
     X_weather = data_weather.drop(cols_to_drop, 1)
-    X_weather = X_weather.rename(
-        columns={'Date': 'flight_date', 'AirPort': 'to'}
-    )
-
-    X_merged = pd.merge(
-        X, X_weather, how='left', on=['flight_date', 'to'], sort=False
-    )
-    return X_merged.drop(['Precipitationmm','Events','WindDirDegrees'], 1)
+    X_weather = X_weather.rename(columns={'Date': 'flight_date', 'AirPort': 'to'})
+    X_merged = pd.merge(X, X_weather, how='left', on=['flight_date', 'to'], sort=False)
+    return X_merged.drop(['Precipitationmm', 'Events', 'WindDirDegrees', 'Max Gust SpeedKm/h'], 1)
 
 # merge only temperature data from external repo
 def merge_temperature_data(X):

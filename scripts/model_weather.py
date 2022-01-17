@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 from datetime import datetime
+import sys
 from feature_transform import dates_encoder, merge_path, \
-    merge_temperature_data
-
+    merge_weather_data_2
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.compose import make_column_transformer
 from sklearn.preprocessing import OneHotEncoder
@@ -19,7 +19,7 @@ X_train = pd.read_csv('data/flights_train.csv',
 X_test = pd.read_csv('data/flights_Xtest.csv',
                      parse_dates=['flight_date'])
 
-data_merger = FunctionTransformer(merge_temperature_data)
+data_merger = FunctionTransformer(merge_weather_data_2)
 
 X_train = data_merger.fit_transform(X_train)
 X_test = data_merger.fit_transform(X_test)
@@ -34,11 +34,11 @@ categorical_encoder = OneHotEncoder(handle_unknown='ignore',
                                     sparse=False)
 categorical_cols = ['path']
 
-preprocessor = make_column_transformer((categorical_encoder, categorical_cols),
-                                       remainder='passthrough')
+preprocessor = make_column_transformer((categorical_encoder,
+        categorical_cols), remainder='passthrough')
 
 regressor_rf = RandomForestRegressor(n_estimators=10, max_depth=10,
-                                     n_jobs=4)
+        n_jobs=4)
 regressor_lgb = LGBMRegressor(
     boosting_type='gbdt',
     class_weight=None,
@@ -73,7 +73,7 @@ regressor_xgb = XGBRegressor(
     gpu_id=-1,
     importance_type=None,
     interaction_constraints='',
-    learning_rate=0.30,
+    learning_rate=0.300000012,
     max_delta_step=0,
     max_depth=6,
     min_child_weight=1,
@@ -108,5 +108,5 @@ y = X_train.target
 pred = vr.fit(X, y).predict(X_test)
 
 submission = pd.DataFrame(pred)
-submission.to_csv('submissions/FPX_submission.csv', index=False,
-                  header=False)
+submission.to_csv('submissions/FPX_submission_weather.csv',
+                  index=False, header=False)
